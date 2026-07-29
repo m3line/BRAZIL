@@ -1,0 +1,7 @@
+# Ignore local raw data files (Kaggle)
+*.csv
+
+# Ignore local python virtual environments and cache
+.venv/
+__pycache__/
+.dbclient/
