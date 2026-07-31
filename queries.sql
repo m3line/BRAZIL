@@ -79,7 +79,7 @@ ALTER TABLE olist_order_items_dataset ADD INDEX (order_id);
         WITH CustomerOrderCounts AS (
             SELECT 
                 c.customer_unique_id,
-                -- Count how many unique orders each client placed over time
+                -- Count total orders per unique id
                 COUNT(DISTINCT o.order_id) AS total_orders_per_customer
             FROM 
                 olist_orders_dataset o
@@ -104,9 +104,41 @@ ALTER TABLE olist_order_items_dataset ADD INDEX (order_id);
             CustomerOrderCounts;
 
 
--- KPI 4 (Key Performance Indicator) : 
+-- KPI 5 (Key Performance Indicator) : Advanced Logistics & Loyalty Correlation Matrix (DOUBLE CTE)
+-- Objective: Analyze the direct correlation between company logistics performance (orders being delivered late,..) and customer repeat purchase behavior.
 
+        WITH CustomerLogistics AS (
+            SELECT 
+                c.customer_unique_id,
+                -- Count total orders per unique id
+                COUNT(DISTINCT o.order_id) AS total_orders,
+                -- captures the worst shipping delay a customer ever experienced in their lifecycle
+                MAX(DATEDIFF(o.order_delivered_customer_date, o.order_estimated_delivery_date)) AS worst_delay
+            FROM olist_orders_dataset o
+            INNER JOIN olist_customers_dataset c ON o.customer_id = c.customer_id
+            WHERE o.order_status = 'delivered'
+              AND o.order_delivered_customer_date IS NOT NULL
+            GROUP BY c.customer_unique_id
+        ),
 
+        DeliveryExperienceGroups AS (
+            SELECT 
+                customer_unique_id,
+                total_orders,
+                CASE 
+                    WHEN worst_delay > 0 THEN ' Experienced Late Delivery'
+                    ELSE 'All Deliveries On-Time / Early'
+                END AS logistics_experience
+            FROM CustomerLogistics
+        )
 
-
+        SELECT 
+            logistics_experience,
+            COUNT(*) AS total_customers_in_segment,
+            -- Calculate the repeat buyer rate for each specific group
+            ROUND(SUM(CASE WHEN total_orders > 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS repeat_buyer_rate_pct,
+            -- Calculate the one-time buyer rate for each specific group
+            ROUND(SUM(CASE WHEN total_orders = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS one_time_buyer_rate_pct
+        FROM DeliveryExperienceGroups
+        GROUP BY logistics_experience;
 
