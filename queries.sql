@@ -142,3 +142,35 @@ ALTER TABLE olist_order_items_dataset ADD INDEX (order_id);
         FROM DeliveryExperienceGroups
         GROUP BY logistics_experience;
 
+-- KPI 6 (Key Performance Indicator) :Sales Growth Rate (monthly)
+
+ WITH MonthlyRevenue AS (
+            SELECT 
+                DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m') AS sales_month,
+                ROUND(SUM(it.price), 2) AS current_month_sales
+            FROM olist_orders_dataset o
+            INNER JOIN olist_order_items_dataset it ON o.order_id = it.order_id
+            WHERE o.order_status IN ('delivered', 'shipped')
+            GROUP BY DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m')
+        ),
+        WithLag AS (
+            SELECT 
+                sales_month,
+                current_month_sales,
+                LAG(current_month_sales, 1) OVER (ORDER BY sales_month) AS previous_month_sales
+            FROM MonthlyRevenue
+        )
+        SELECT 
+            sales_month,
+            current_month_sales AS sales_revenue,
+            previous_month_sales,
+            ROUND((current_month_sales - previous_month_sales) * 100.0 / previous_month_sales, 2) AS sales_growth_rate_pct
+        FROM WithLag
+        -- Excludes the test period (late 2016) to ensure legible charts and avoid calculation errors.
+        WHERE sales_month >= '2017-02' 
+        ORDER BY sales_month ASC;
+
+-- KPI 7 (Key Performance Indicator) :
+
+
+
