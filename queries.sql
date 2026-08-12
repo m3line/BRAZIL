@@ -175,25 +175,53 @@ ALTER TABLE olist_sellers_dataset ADD INDEX (seller_id);
 
 -- KPI 7 (Key Performance Indicator) : Product Performance Analysis
 
-SELECT 
-            p.product_category_name AS product_category,
-            COUNT(DISTINCT o.order_id) AS total_orders_volume,
-            ROUND(SUM(it.price), 2) AS pure_sales_revenue,
-            ROUND(SUM(it.price + it.freight_value), 2) AS gross_merchandise_value,
-            -- % of freights cost relative to the product price
-            ROUND((SUM(it.freight_value) / SUM(it.price)) * 100.0, 2) AS logistics_cost_ratio_pct
-        FROM 
-            olist_orders_dataset o
-        INNER JOIN 
-            olist_order_items_dataset it ON o.order_id = it.order_id
-        INNER JOIN 
-            olist_products_dataset p ON it.product_id = p.product_id
-        WHERE 
-            o.order_status = 'delivered'
-            AND p.product_category_name IS NOT NULL
-        GROUP BY 
-            p.product_category_name
-        ORDER BY 
-            pure_sales_revenue DESC
-        LIMIT 15; 
+        SELECT 
+                    p.product_category_name AS product_category,
+                    COUNT(DISTINCT o.order_id) AS total_orders_volume,
+                    ROUND(SUM(it.price), 2) AS pure_sales_revenue,
+                    ROUND(SUM(it.price + it.freight_value), 2) AS gross_merchandise_value,
+                    -- % of freights cost relative to the product price
+                    ROUND((SUM(it.freight_value) / SUM(it.price)) * 100.0, 2) AS logistics_cost_ratio_pct
+                FROM 
+                    olist_orders_dataset o
+                INNER JOIN 
+                    olist_order_items_dataset it ON o.order_id = it.order_id
+                INNER JOIN 
+                    olist_products_dataset p ON it.product_id = p.product_id
+                WHERE 
+                    o.order_status = 'delivered'
+                    AND p.product_category_name IS NOT NULL
+                GROUP BY 
+                    p.product_category_name
+                ORDER BY 
+                    pure_sales_revenue DESC
+                LIMIT 15; 
 
+-- KPI 8 (Key Performance Indicator) : Customer Experience >>> Review Score + Delay Correlation
+
+        WITH CustomerLogistics AS (
+            SELECT 
+                o.order_id,
+                DATEDIFF(o.order_delivered_customer_date, o.order_estimated_delivery_date) AS delivery_delay
+            FROM olist_orders_dataset o
+            WHERE o.order_status = 'delivered'
+              AND o.order_delivered_customer_date IS NOT NULL
+        ),
+
+        DeliveryExperienceGroups AS (
+            SELECT 
+                order_id,
+                CASE 
+                    WHEN delivery_delay > 0 THEN ' Experienced Late Delivery'
+                    ELSE 'All Deliveries On-Time / Early'
+                END AS logistics_experience
+            FROM CustomerLogistics
+        )
+
+        SELECT 
+            g.logistics_experience,
+            COUNT(*) AS total_reviews_analyzed,
+            ROUND(AVG(r.review_score), 2) AS avg_customer_satisfaction_score
+        FROM DeliveryExperienceGroups g
+        INNER JOIN olist_order_reviews_dataset r ON g.order_id = r.order_id
+        GROUP BY g.logistics_experience;
