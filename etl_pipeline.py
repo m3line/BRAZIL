@@ -12,8 +12,14 @@ engine = create_engine("mysql+pymysql://root:@127.0.0.1:3306/olist_ecommerce")
 data_to_import = {
     "olist_customers_dataset.csv": "olist_customers_dataset",
     "olist_orders_dataset.csv": "olist_orders_dataset",
-    "olist_order_items_dataset.csv": "olist_order_items_dataset"
+    "olist_order_items_dataset.csv": "olist_order_items_dataset",
+    "olist_order_payments_dataset.csv": "olist_order_payments_dataset",
+    "olist_products_dataset.csv": "olist_products_dataset",          
+    "olist_order_reviews_dataset.csv": "olist_order_reviews_dataset",    
+    "olist_sellers_dataset.csv": "olist_sellers_dataset",             
+    "product_category_name_translation.csv": "product_category_name_translation"
 }
+
 
 # path of the Kaggle's file
 base_path = "C:/Users/melin/Downloads/BRAZILCOMM/"
@@ -35,6 +41,7 @@ for file_name, table_name in data_to_import.items():
         # Transform
         # Standardisation columns : evrything in Lower Case 
         df.columns = df.columns.str.lower()
+        df = df.drop_duplicates()
         
         print(f" Injecting {len(df)} rows into SQL table '{table_name}'...")
         

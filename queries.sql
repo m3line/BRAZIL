@@ -3,6 +3,9 @@ USE olist_ecommerce;
 ALTER TABLE olist_orders_dataset ADD INDEX (customer_id);
 ALTER TABLE olist_orders_dataset ADD INDEX (order_id);
 ALTER TABLE olist_order_items_dataset ADD INDEX (order_id);
+ALTER TABLE olist_products_dataset ADD INDEX (product_id);
+ALTER TABLE olist_order_reviews_dataset ADD INDEX (order_id);
+ALTER TABLE olist_sellers_dataset ADD INDEX (seller_id);
 
 
 -- KPI 1 (Key Performance Indicator) : Customer Lifetime Value (CLV) Analysis by Region
@@ -170,7 +173,27 @@ ALTER TABLE olist_order_items_dataset ADD INDEX (order_id);
         WHERE sales_month >= '2017-02' 
         ORDER BY sales_month ASC;
 
--- KPI 7 (Key Performance Indicator) :
+-- KPI 7 (Key Performance Indicator) : Product Performance Analysis
 
-
+SELECT 
+            p.product_category_name AS product_category,
+            COUNT(DISTINCT o.order_id) AS total_orders_volume,
+            ROUND(SUM(it.price), 2) AS pure_sales_revenue,
+            ROUND(SUM(it.price + it.freight_value), 2) AS gross_merchandise_value,
+            -- % of freights cost relative to the product price
+            ROUND((SUM(it.freight_value) / SUM(it.price)) * 100.0, 2) AS logistics_cost_ratio_pct
+        FROM 
+            olist_orders_dataset o
+        INNER JOIN 
+            olist_order_items_dataset it ON o.order_id = it.order_id
+        INNER JOIN 
+            olist_products_dataset p ON it.product_id = p.product_id
+        WHERE 
+            o.order_status = 'delivered'
+            AND p.product_category_name IS NOT NULL
+        GROUP BY 
+            p.product_category_name
+        ORDER BY 
+            pure_sales_revenue DESC
+        LIMIT 15; 
 
