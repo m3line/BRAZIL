@@ -225,3 +225,5 @@ ALTER TABLE olist_sellers_dataset ADD INDEX (seller_id);
         FROM DeliveryExperienceGroups g
         INNER JOIN olist_order_reviews_dataset r ON g.order_id = r.order_id
         GROUP BY g.logistics_experience;
+
+-- KPI 9 (Key Performance Indicator) :
