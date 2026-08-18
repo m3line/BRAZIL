@@ -226,4 +226,19 @@ ALTER TABLE olist_sellers_dataset ADD INDEX (seller_id);
         INNER JOIN olist_order_reviews_dataset r ON g.order_id = r.order_id
         GROUP BY g.logistics_experience;
 
--- KPI 9 (Key Performance Indicator) :
+-- KPI 9 (Key Performance Indicator) : Sales Cycle Length
+
+        SELECT 
+            DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m') AS order_month,
+            COUNT(DISTINCT o.order_id) AS total_orders,
+            ROUND(AVG(DATEDIFF(o.order_delivered_customer_date, o.order_purchase_timestamp)), 1) AS total_delivery_days,
+            ROUND(AVG(DATEDIFF(o.order_delivered_carrier_date, o.order_purchase_timestamp)), 1) AS warehouse_days,
+            ROUND(AVG(DATEDIFF(o.order_delivered_customer_date, o.order_delivered_carrier_date)), 1) AS shipping_days
+        FROM olist_orders_dataset o
+        WHERE o.order_status = 'delivered'
+          AND o.order_purchase_timestamp IS NOT NULL
+          AND o.order_delivered_carrier_date IS NOT NULL
+          AND o.order_delivered_customer_date IS NOT NULL
+          AND DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m') >= '2017-02'
+        GROUP BY DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m')
+        ORDER BY order_month ASC;
